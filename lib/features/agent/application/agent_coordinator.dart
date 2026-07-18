@@ -139,9 +139,13 @@ final class AgentCoordinator implements AgentPort {
               'El agente no finalizo ni solicito una herramienta.',
             );
           }
-          yield const AgentEvent(
+          yield AgentEvent(
             type: AgentEventType.completed,
             message: 'Analisis completado y verificado.',
+            payload: {
+              'layouts':
+                  context.optimization?.layouts ?? const <NestingLayout>[],
+            },
           );
           return;
         }

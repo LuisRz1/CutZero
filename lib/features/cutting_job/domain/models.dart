@@ -88,6 +88,19 @@ final class PartTemplate {
   final int quantity;
   final List<int> allowedRotations;
   final bool grainLocked;
+
+  PartTemplate copyWith({
+    int? quantity,
+    List<int>? allowedRotations,
+    bool? grainLocked,
+  }) => PartTemplate(
+    id: id,
+    name: name,
+    polygon: polygon,
+    quantity: quantity ?? this.quantity,
+    allowedRotations: allowedRotations ?? this.allowedRotations,
+    grainLocked: grainLocked ?? this.grainLocked,
+  );
 }
 
 final class PartInstance {
@@ -212,15 +225,19 @@ final class CuttingJob {
   ];
 
   CuttingJob copyWith({
+    String? name,
+    MaterialSheet? material,
+    List<PartTemplate>? parts,
+    double? gapMm,
     CuttingJobStage? stage,
     String? instruction,
     List<NestingLayout>? layouts,
   }) => CuttingJob(
     id: id,
-    name: name,
-    material: material,
-    parts: parts,
-    gapMm: gapMm,
+    name: name ?? this.name,
+    material: material ?? this.material,
+    parts: parts ?? this.parts,
+    gapMm: gapMm ?? this.gapMm,
     stage: stage ?? this.stage,
     instruction: instruction ?? this.instruction,
     layouts: layouts ?? this.layouts,
