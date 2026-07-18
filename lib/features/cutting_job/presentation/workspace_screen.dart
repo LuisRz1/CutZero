@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../app/app_shell.dart';
 import '../../../app/theme/app_theme.dart';
@@ -169,71 +168,80 @@ final class _StageTrack extends StatelessWidget {
   final CuttingJobStage stage;
 
   @override
-  Widget build(BuildContext context) {
-    final active = switch (stage) {
-      CuttingJobStage.draft => 0,
-      CuttingJobStage.captured => 0,
-      CuttingJobStage.reviewed => 1,
-      CuttingJobStage.optimizing => 2,
-      CuttingJobStage.optimized => 2,
-      CuttingJobStage.exported => 3,
-    };
-    const labels = ['Captura', 'Revision', 'Optimizacion', 'Salida'];
-    const icons = [
-      Icons.document_scanner_outlined,
-      Icons.fact_check_outlined,
-      Icons.auto_graph_outlined,
-      Icons.file_present_outlined,
-    ];
-    return Row(
-      children: [
-        for (var index = 0; index < labels.length; index++) ...[
-          Expanded(
-            child: Semantics(
-              selected: index == active,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: index <= active
-                      ? CutZeroColors.sky.withValues(alpha: 0.12)
-                      : CutZeroColors.surface,
-                  border: Border.all(
-                    color: index <= active
-                        ? CutZeroColors.sky
-                        : CutZeroColors.line,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      icons[index],
-                      size: 18,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final active = switch (stage) {
+        CuttingJobStage.draft => 0,
+        CuttingJobStage.captured => 0,
+        CuttingJobStage.reviewed => 1,
+        CuttingJobStage.optimizing => 2,
+        CuttingJobStage.optimized => 2,
+        CuttingJobStage.exported => 3,
+      };
+      final compact = constraints.maxWidth < 560;
+      const labels = ['Captura', 'Revision', 'Optimizacion', 'Salida'];
+      const icons = [
+        Icons.document_scanner_outlined,
+        Icons.fact_check_outlined,
+        Icons.auto_graph_outlined,
+        Icons.file_present_outlined,
+      ];
+      return Row(
+        children: [
+          for (var index = 0; index < labels.length; index++) ...[
+            Expanded(
+              child: Semantics(
+                label: labels[index],
+                selected: index == active,
+                child: Tooltip(
+                  message: labels[index],
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 240),
+                    height: 44,
+                    padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+                    decoration: BoxDecoration(
                       color: index <= active
-                          ? CutZeroColors.skyDark
-                          : CutZeroColors.ink.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 7),
-                    Flexible(
-                      child: Text(
-                        labels[index],
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelMedium,
+                          ? CutZeroColors.sky.withValues(alpha: 0.12)
+                          : CutZeroColors.surface,
+                      border: Border.all(
+                        color: index <= active
+                            ? CutZeroColors.sky
+                            : CutZeroColors.line,
                       ),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          icons[index],
+                          size: 18,
+                          color: index <= active
+                              ? CutZeroColors.skyDark
+                              : CutZeroColors.ink.withValues(alpha: 0.5),
+                        ),
+                        if (!compact) ...[
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              labels[index],
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          if (index < labels.length - 1) const SizedBox(width: 8),
+            if (index < labels.length - 1) const SizedBox(width: 8),
+          ],
         ],
-      ],
-    );
-  }
+      );
+    },
+  );
 }
 
 final class _Notice extends StatelessWidget {
@@ -331,9 +339,12 @@ final class _CapturePanel extends StatelessWidget {
                 message: 'Tomar foto',
                 child: IconButton.outlined(
                   key: const Key('cameraButton'),
+                  tooltip: 'Tomar foto',
                   onPressed: state.isBusy
                       ? null
-                      : () => unawaited(controller.capture(ImageSource.camera)),
+                      : () => unawaited(
+                          controller.capture(ImageCaptureSource.camera),
+                        ),
                   icon: const Icon(Icons.photo_camera_outlined),
                 ),
               ),
@@ -342,10 +353,12 @@ final class _CapturePanel extends StatelessWidget {
                 message: 'Elegir imagen',
                 child: IconButton.outlined(
                   key: const Key('galleryButton'),
+                  tooltip: 'Elegir imagen',
                   onPressed: state.isBusy
                       ? null
-                      : () =>
-                            unawaited(controller.capture(ImageSource.gallery)),
+                      : () => unawaited(
+                          controller.capture(ImageCaptureSource.gallery),
+                        ),
                   icon: const Icon(Icons.photo_library_outlined),
                 ),
               ),
@@ -657,6 +670,7 @@ final class _ResultsPanel extends StatelessWidget {
                   message: 'Exportar SVG',
                   child: IconButton.outlined(
                     key: const Key('exportSvgButton'),
+                    tooltip: 'Exportar SVG',
                     onPressed: state.isBusy
                         ? null
                         : () => unawaited(
@@ -669,6 +683,7 @@ final class _ResultsPanel extends StatelessWidget {
                   message: 'Exportar PDF',
                   child: IconButton.filled(
                     key: const Key('exportPdfButton'),
+                    tooltip: 'Exportar PDF',
                     onPressed: state.isBusy
                         ? null
                         : () => unawaited(
@@ -680,6 +695,7 @@ final class _ResultsPanel extends StatelessWidget {
                 Tooltip(
                   message: 'Compartir archivo',
                   child: IconButton.outlined(
+                    tooltip: 'Compartir archivo',
                     onPressed: state.isBusy || state.lastExport == null
                         ? null
                         : () => unawaited(controller.shareLastExport()),

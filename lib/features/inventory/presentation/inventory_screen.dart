@@ -109,67 +109,90 @@ final class _RemnantTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final bounds = remnant.polygon.bounds;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: CutZeroColors.mint.withValues(alpha: 0.13),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Icon(
-                Icons.inventory_2_outlined,
-                color: CutZeroColors.mint,
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 540;
+          final icon = Container(
+            width: compact ? 44 : 52,
+            height: compact ? 44 : 52,
+            decoration: BoxDecoration(
+              color: CutZeroColors.mint.withValues(alpha: 0.13),
+              borderRadius: BorderRadius.circular(6),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    remnant.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 5),
-                  Wrap(
-                    spacing: 14,
-                    runSpacing: 5,
+            child: const Icon(
+              Icons.inventory_2_outlined,
+              color: CutZeroColors.mint,
+            ),
+          );
+          final area = Text(
+            '${(remnant.polygon.area / 1000000).toStringAsFixed(2)} m2',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: CutZeroColors.skyDark),
+          );
+          final details = Wrap(
+            spacing: 14,
+            runSpacing: 7,
+            children: [
+              _Detail(
+                icon: Icons.straighten,
+                text: '${bounds.width.round()} x ${bounds.height.round()} mm',
+              ),
+              _Detail(
+                icon: Icons.layers_outlined,
+                text: '${remnant.thicknessMm.toStringAsFixed(1)} mm',
+              ),
+              _Detail(icon: Icons.palette_outlined, text: remnant.color),
+              _Detail(icon: Icons.place_outlined, text: remnant.location),
+            ],
+          );
+          return Padding(
+            padding: const EdgeInsets.all(15),
+            child: compact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _Detail(
-                        icon: Icons.straighten,
-                        text:
-                            '${bounds.width.round()} x ${bounds.height.round()} mm',
+                      Row(
+                        children: [
+                          icon,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              remnant.name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          area,
+                        ],
                       ),
-                      _Detail(
-                        icon: Icons.layers_outlined,
-                        text: '${remnant.thicknessMm.toStringAsFixed(1)} mm',
+                      const SizedBox(height: 12),
+                      details,
+                    ],
+                  )
+                : Row(
+                    children: [
+                      icon,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              remnant.name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 5),
+                            details,
+                          ],
+                        ),
                       ),
-                      _Detail(
-                        icon: Icons.palette_outlined,
-                        text: remnant.color,
-                      ),
-                      _Detail(
-                        icon: Icons.place_outlined,
-                        text: remnant.location,
-                      ),
+                      const SizedBox(width: 12),
+                      area,
                     ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '${(remnant.polygon.area / 1000000).toStringAsFixed(2)} m2',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: CutZeroColors.skyDark),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

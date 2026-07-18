@@ -74,7 +74,7 @@ abstract final class CutZeroTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size.square(44),
+          minimumSize: const Size.square(48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),

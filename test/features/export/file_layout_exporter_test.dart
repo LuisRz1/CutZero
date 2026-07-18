@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cutzero/features/cutting_job/application/ports.dart';
 import 'package:cutzero/features/cutting_job/infrastructure/demo_fixture.dart';
@@ -25,7 +26,10 @@ void main() {
       validator: ClipperLayoutValidator(geometry),
     );
     final layout = (await optimization(job)).materialEfficient;
-    final exporter = FileLayoutExporter(directoryProvider: () async => output);
+    final exporter = FileLayoutExporter(
+      directoryProvider: () async => output,
+      fontDataProvider: _loadFont,
+    );
 
     final svg = await exporter.export(
       LayoutExportRequest(
@@ -48,3 +52,7 @@ void main() {
     expect(pdf.bytes, greaterThan(1000));
   });
 }
+
+Future<ByteData> _loadFont() async => ByteData.sublistView(
+  await File('assets/fonts/NotoSans-Variable.ttf').readAsBytes(),
+);

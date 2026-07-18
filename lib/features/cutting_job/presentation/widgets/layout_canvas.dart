@@ -29,7 +29,11 @@ final class LayoutCanvas extends StatelessWidget {
           boundaryMargin: const EdgeInsets.all(80),
           child: CustomPaint(
             key: ValueKey(layout.id),
-            painter: _LayoutPainter(job: job, layout: layout),
+            painter: _LayoutPainter(
+              job: job,
+              layout: layout,
+              fontFamily: DefaultTextStyle.of(context).style.fontFamily,
+            ),
             child: const SizedBox.expand(),
           ),
         ),
@@ -39,10 +43,15 @@ final class LayoutCanvas extends StatelessWidget {
 }
 
 final class _LayoutPainter extends CustomPainter {
-  const _LayoutPainter({required this.job, required this.layout});
+  const _LayoutPainter({
+    required this.job,
+    required this.layout,
+    required this.fontFamily,
+  });
 
   final CuttingJob job;
   final NestingLayout layout;
+  final String? fontFamily;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -97,10 +106,11 @@ final class _LayoutPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: placement.name,
-          style: const TextStyle(
+          style: TextStyle(
             color: CutZeroColors.ink,
             fontSize: 9,
             fontWeight: FontWeight.w700,
+            fontFamily: fontFamily,
           ),
         ),
         maxLines: 1,
@@ -130,5 +140,7 @@ final class _LayoutPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _LayoutPainter oldDelegate) =>
-      oldDelegate.layout.id != layout.id || oldDelegate.job != job;
+      oldDelegate.layout.id != layout.id ||
+      oldDelegate.job != job ||
+      oldDelegate.fontFamily != fontFamily;
 }

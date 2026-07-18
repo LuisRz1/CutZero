@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -11,13 +13,21 @@ import '../../cutting_job/application/ports.dart';
 import '../../cutting_job/domain/models.dart';
 
 typedef ExportDirectoryProvider = Future<Directory> Function();
+typedef PdfFontDataProvider = Future<ByteData> Function();
 
 final class FileLayoutExporter implements LayoutExporter {
-  FileLayoutExporter({ExportDirectoryProvider? directoryProvider})
-    : _directoryProvider =
-          directoryProvider ?? getApplicationDocumentsDirectory;
+  FileLayoutExporter({
+    ExportDirectoryProvider? directoryProvider,
+    PdfFontDataProvider? fontDataProvider,
+  }) : _directoryProvider =
+           directoryProvider ?? getApplicationDocumentsDirectory,
+       _fontDataProvider =
+           fontDataProvider ??
+           (() => rootBundle.load('assets/fonts/NotoSans-Variable.ttf'));
 
   final ExportDirectoryProvider _directoryProvider;
+  final PdfFontDataProvider _fontDataProvider;
+  Future<pw.Font>? _font;
 
   @override
   Future<ExportedLayout> export(LayoutExportRequest request) async {
@@ -64,6 +74,7 @@ final class FileLayoutExporter implements LayoutExporter {
   ) async {
     final job = request.job;
     final layout = request.layout;
+    final font = await _loadFont();
     final document = pw.Document(
       title: 'CutZero - ${job.name}',
       author: 'CutZero',
@@ -72,6 +83,12 @@ final class FileLayoutExporter implements LayoutExporter {
       pw.Page(
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(24),
+        theme: pw.ThemeData.withFont(
+          base: font,
+          bold: font,
+          italic: font,
+          boldItalic: font,
+        ),
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -88,7 +105,12 @@ final class FileLayoutExporter implements LayoutExporter {
             pw.SizedBox(height: 12),
             pw.Expanded(
               child: pw.SvgImage(
-                svg: _buildSvg(job, layout, includeMetadata: false),
+                svg: _buildSvg(
+                  job,
+                  layout,
+                  includeMetadata: false,
+                  includeLabels: false,
+                ),
                 fit: pw.BoxFit.contain,
               ),
             ),
@@ -112,10 +134,14 @@ final class FileLayoutExporter implements LayoutExporter {
     );
   }
 
+  Future<pw.Font> _loadFont() =>
+      _font ??= _fontDataProvider().then(pw.Font.ttf);
+
   String _buildSvg(
     CuttingJob job,
     NestingLayout layout, {
     bool includeMetadata = true,
+    bool includeLabels = true,
   }) {
     final width = job.material.widthMm;
     final height = job.material.heightMm;
@@ -146,17 +172,18 @@ final class FileLayoutExporter implements LayoutExporter {
       final placement = layout.placements[index];
       final bounds = placement.polygon.bounds;
       final fill = index.isEven ? '#67C7E5' : '#7BD3B1';
-      buffer
-        ..writeln(
-          '<polygon id="${const HtmlEscape().convert(placement.instanceId)}" '
-          'points="${_points(placement.polygon)}" fill="$fill" '
-          'stroke="#114B63" stroke-width="2"/>',
-        )
-        ..writeln(
+      buffer.writeln(
+        '<polygon id="${const HtmlEscape().convert(placement.instanceId)}" '
+        'points="${_points(placement.polygon)}" fill="$fill" '
+        'stroke="#114B63" stroke-width="2"/>',
+      );
+      if (includeLabels) {
+        buffer.writeln(
           '<text x="${bounds.minX + 8}" y="${bounds.minY + 18}" '
           'font-family="Arial, sans-serif" font-size="12" fill="#0B3445">'
           '${const HtmlEscape().convert(placement.name)}</text>',
         );
+      }
     }
     buffer.writeln('</svg>');
     return buffer.toString();

@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
@@ -97,7 +96,6 @@ final cuttingWorkspaceProvider =
     );
 
 final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
-  final ImagePicker _picker = ImagePicker();
   final Uuid _uuid = const Uuid();
 
   @override
@@ -133,7 +131,7 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
     await _vectorize(path: 'assets/fixtures/eva_bag_manual.png', bytes: null);
   }
 
-  Future<void> capture(ImageSource source) async {
+  Future<void> capture(ImageCaptureSource source) async {
     if (state.isBusy) return;
     state = state.copyWith(
       task: WorkspaceTask.capture,
@@ -141,16 +139,12 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
       error: null,
     );
     try {
-      final image = await _picker.pickImage(
-        source: source,
-        imageQuality: 92,
-        maxWidth: 2200,
-      );
+      final image = await ref.read(imageAcquisitionProvider).pick(source);
       if (image == null || !ref.mounted) {
         if (ref.mounted) state = state.copyWith(task: WorkspaceTask.none);
         return;
       }
-      await _vectorize(path: image.path, bytes: await image.readAsBytes());
+      await _vectorize(path: image.path, bytes: image.bytes);
     } catch (error) {
       if (!ref.mounted) return;
       state = state.copyWith(
@@ -424,7 +418,7 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
 
   Future<void> checkModel() async {
     try {
-      final installed = await ref.read(gemmaModelManagerProvider).isInstalled();
+      final installed = await ref.read(gemmaAvailabilityProvider)();
       if (!ref.mounted) return;
       state = state.copyWith(
         modelStatus: GemmaModelStatus(

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../core/domain/geometry.dart';
 import '../domain/models.dart';
 
@@ -92,6 +94,19 @@ final class VectorizationResult {
 
 abstract interface class VisionPort {
   Future<VectorizationResult> vectorize(VectorizationRequest request);
+}
+
+enum ImageCaptureSource { camera, gallery }
+
+final class CapturedImage {
+  const CapturedImage({required this.path, required this.bytes});
+
+  final String path;
+  final Uint8List bytes;
+}
+
+abstract interface class ImageAcquisitionPort {
+  Future<CapturedImage?> pick(ImageCaptureSource source);
 }
 
 enum LayoutExportFormat { svg, pdf }

@@ -13,6 +13,7 @@ import '../features/cutting_job/application/ports.dart';
 import '../features/cutting_job/domain/models.dart';
 import '../features/cutting_job/infrastructure/persistence/cutting_job_mapper.dart';
 import '../features/cutting_job/infrastructure/persistence/drift_repositories.dart';
+import '../features/cutting_job/infrastructure/image_picker_adapter.dart';
 import '../features/export/infrastructure/file_layout_exporter.dart';
 import '../features/inventory/application/create_remnant.dart';
 import '../features/optimization/application/run_optimization.dart';
@@ -64,6 +65,10 @@ final visionProvider = Provider<VisionPort>(
   (ref) => const FixtureVisionAdapter(),
 );
 
+final imageAcquisitionProvider = Provider<ImageAcquisitionPort>(
+  (ref) => ImagePickerAdapter(),
+);
+
 final runOptimizationProvider = Provider<RunOptimization>((ref) {
   const geometry = ClipperGeometry();
   return RunOptimization(
@@ -86,6 +91,12 @@ final gemmaModelManagerProvider = Provider<GemmaModelManager>(
         ? null
         : const String.fromEnvironment('HF_TOKEN'),
   ),
+);
+
+typedef GemmaAvailabilityCheck = Future<bool> Function();
+
+final gemmaAvailabilityProvider = Provider<GemmaAvailabilityCheck>(
+  (ref) => ref.watch(gemmaModelManagerProvider).isInstalled,
 );
 
 final agentToolRegistryProvider = Provider<AgentToolRegistry>(
