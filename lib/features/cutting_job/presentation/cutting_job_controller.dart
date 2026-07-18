@@ -5,12 +5,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/providers.dart';
-import '../../agent/infrastructure/gemma_model_manager.dart';
 import '../../inventory/application/create_remnant.dart';
 import '../../optimization/application/run_optimization.dart';
 import '../application/ports.dart';
 import '../domain/models.dart';
-import '../infrastructure/demo_fixture.dart';
+import '../application/demo_fixture.dart';
 
 enum WorkspaceTask { none, capture, optimize, export, agent, model }
 
@@ -29,8 +28,8 @@ final class CuttingWorkspaceState {
     this.agentEvents = const [],
     this.remnantSaved = false,
     this.lastExport,
-    this.modelStatus = const GemmaModelStatus(
-      state: GemmaModelState.notInstalled,
+    this.modelStatus = const LocalModelStatus(
+      state: LocalModelState.notInstalled,
     ),
   });
 
@@ -45,7 +44,7 @@ final class CuttingWorkspaceState {
   final List<AgentEvent> agentEvents;
   final bool remnantSaved;
   final ExportedLayout? lastExport;
-  final GemmaModelStatus modelStatus;
+  final LocalModelStatus modelStatus;
 
   bool get isBusy => task != WorkspaceTask.none;
   bool get canReview =>
@@ -67,7 +66,7 @@ final class CuttingWorkspaceState {
     List<AgentEvent>? agentEvents,
     bool? remnantSaved,
     Object? lastExport = _keepValue,
-    GemmaModelStatus? modelStatus,
+    LocalModelStatus? modelStatus,
   }) => CuttingWorkspaceState(
     job: job ?? this.job,
     capturePath: capturePath ?? this.capturePath,
@@ -418,13 +417,13 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
 
   Future<void> checkModel() async {
     try {
-      final installed = await ref.read(gemmaAvailabilityProvider)();
+      final installed = await ref.read(localModelProvider).isInstalled();
       if (!ref.mounted) return;
       state = state.copyWith(
-        modelStatus: GemmaModelStatus(
+        modelStatus: LocalModelStatus(
           state: installed
-              ? GemmaModelState.ready
-              : GemmaModelState.notInstalled,
+              ? LocalModelState.ready
+              : LocalModelState.notInstalled,
           progress: installed ? 100 : 0,
           message: installed
               ? 'Gemma 4 esta instalado.'
@@ -434,8 +433,8 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
     } catch (error) {
       if (!ref.mounted) return;
       state = state.copyWith(
-        modelStatus: GemmaModelStatus(
-          state: GemmaModelState.failed,
+        modelStatus: LocalModelStatus(
+          state: LocalModelState.failed,
           message: 'No se pudo consultar el modelo: $error',
         ),
       );
@@ -445,7 +444,7 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
   Future<void> installModel() async {
     if (state.isBusy) return;
     state = state.copyWith(task: WorkspaceTask.model, error: null);
-    await for (final status in ref.read(gemmaModelManagerProvider).install()) {
+    await for (final status in ref.read(localModelProvider).install()) {
       if (!ref.mounted) return;
       state = state.copyWith(modelStatus: status);
     }
@@ -457,12 +456,12 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
     if (state.isBusy) return;
     state = state.copyWith(task: WorkspaceTask.model, error: null);
     try {
-      await ref.read(gemmaModelManagerProvider).uninstall();
+      await ref.read(localModelProvider).uninstall();
       if (!ref.mounted) return;
       state = state.copyWith(
         task: WorkspaceTask.none,
-        modelStatus: const GemmaModelStatus(
-          state: GemmaModelState.notInstalled,
+        modelStatus: const LocalModelStatus(
+          state: LocalModelState.notInstalled,
           message: 'Gemma 4 fue eliminado del dispositivo.',
         ),
       );

@@ -3,21 +3,9 @@ import 'dart:async';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 
-enum GemmaModelState { notInstalled, downloading, ready, failed }
+import '../../cutting_job/application/ports.dart';
 
-final class GemmaModelStatus {
-  const GemmaModelStatus({
-    required this.state,
-    this.progress = 0,
-    this.message = '',
-  });
-
-  final GemmaModelState state;
-  final int progress;
-  final String message;
-}
-
-final class GemmaModelManager {
+final class GemmaModelManager implements LocalModelPort {
   GemmaModelManager({this.huggingFaceToken});
 
   static const modelId = 'gemma-4-E2B-it.litertlm';
@@ -33,25 +21,27 @@ final class GemmaModelManager {
     inferenceEngines: const [LiteRtLmEngine()],
   );
 
+  @override
   Future<bool> isInstalled() async {
     await initialize();
     return FlutterGemma.isModelInstalled(modelId);
   }
 
-  Stream<GemmaModelStatus> install() async* {
+  @override
+  Stream<LocalModelStatus> install() async* {
     await initialize();
     if (await FlutterGemma.isModelInstalled(modelId)) {
-      yield const GemmaModelStatus(
-        state: GemmaModelState.ready,
+      yield const LocalModelStatus(
+        state: LocalModelState.ready,
         progress: 100,
         message: 'Gemma 4 ya esta instalado.',
       );
       return;
     }
-    final statuses = StreamController<GemmaModelStatus>();
+    final statuses = StreamController<LocalModelStatus>();
     statuses.add(
-      const GemmaModelStatus(
-        state: GemmaModelState.downloading,
+      const LocalModelStatus(
+        state: LocalModelState.downloading,
         message: 'Descargando Gemma 4 E2B.',
       ),
     );
@@ -59,7 +49,7 @@ final class GemmaModelManager {
     yield* statuses.stream;
   }
 
-  Future<void> _installInto(StreamController<GemmaModelStatus> statuses) async {
+  Future<void> _installInto(StreamController<LocalModelStatus> statuses) async {
     try {
       await FlutterGemma.installModel(
             modelType: ModelType.gemma4,
@@ -68,8 +58,8 @@ final class GemmaModelManager {
           .fromNetwork(modelUrl, token: huggingFaceToken, foreground: true)
           .withProgress(
             (value) => statuses.add(
-              GemmaModelStatus(
-                state: GemmaModelState.downloading,
+              LocalModelStatus(
+                state: LocalModelState.downloading,
                 progress: value,
                 message: 'Descargando Gemma 4 E2B.',
               ),
@@ -77,16 +67,16 @@ final class GemmaModelManager {
           )
           .install();
       statuses.add(
-        const GemmaModelStatus(
-          state: GemmaModelState.ready,
+        const LocalModelStatus(
+          state: LocalModelState.ready,
           progress: 100,
           message: 'Gemma 4 esta listo para trabajar sin conexion.',
         ),
       );
     } catch (error) {
       statuses.add(
-        GemmaModelStatus(
-          state: GemmaModelState.failed,
+        LocalModelStatus(
+          state: LocalModelState.failed,
           message: 'No se pudo instalar Gemma 4: $error',
         ),
       );
@@ -95,6 +85,7 @@ final class GemmaModelManager {
     }
   }
 
+  @override
   Future<void> uninstall() async {
     await initialize();
     if (await FlutterGemma.isModelInstalled(modelId)) {

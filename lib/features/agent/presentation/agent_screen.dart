@@ -8,7 +8,6 @@ import '../../../app/providers.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../cutting_job/application/ports.dart';
 import '../../cutting_job/presentation/cutting_job_controller.dart';
-import '../infrastructure/gemma_model_manager.dart';
 
 final class AgentScreen extends ConsumerStatefulWidget {
   const AgentScreen({super.key});
@@ -128,7 +127,7 @@ final class _AgentScreenState extends ConsumerState<AgentScreen> {
                                 state.isBusy ||
                                     (_useGemma &&
                                         state.modelStatus.state !=
-                                            GemmaModelState.ready)
+                                            LocalModelState.ready)
                                 ? null
                                 : () => unawaited(
                                     controller.runAgent(useGemma: _useGemma),
@@ -178,8 +177,8 @@ final class _ModelPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = state.modelStatus;
-    final ready = status.state == GemmaModelState.ready;
-    final downloading = status.state == GemmaModelState.downloading;
+    final ready = status.state == LocalModelState.ready;
+    final downloading = status.state == LocalModelState.downloading;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),

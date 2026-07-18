@@ -93,10 +93,8 @@ final gemmaModelManagerProvider = Provider<GemmaModelManager>(
   ),
 );
 
-typedef GemmaAvailabilityCheck = Future<bool> Function();
-
-final gemmaAvailabilityProvider = Provider<GemmaAvailabilityCheck>(
-  (ref) => ref.watch(gemmaModelManagerProvider).isInstalled,
+final localModelProvider = Provider<LocalModelPort>(
+  (ref) => ref.watch(gemmaModelManagerProvider),
 );
 
 final agentToolRegistryProvider = Provider<AgentToolRegistry>(

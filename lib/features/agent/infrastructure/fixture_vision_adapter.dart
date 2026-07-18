@@ -1,5 +1,5 @@
 import '../../cutting_job/application/ports.dart';
-import '../../cutting_job/infrastructure/demo_fixture.dart';
+import '../../cutting_job/application/demo_fixture.dart';
 
 final class FixtureVisionAdapter implements VisionPort {
   const FixtureVisionAdapter();

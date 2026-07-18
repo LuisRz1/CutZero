@@ -1,7 +1,7 @@
 import 'package:cutzero/core/domain/geometry.dart';
 import 'package:cutzero/core/infrastructure/database/app_database.dart';
 import 'package:cutzero/features/cutting_job/domain/models.dart';
-import 'package:cutzero/features/cutting_job/infrastructure/demo_fixture.dart';
+import 'package:cutzero/features/cutting_job/application/demo_fixture.dart';
 import 'package:cutzero/features/cutting_job/infrastructure/persistence/cutting_job_mapper.dart';
 import 'package:cutzero/features/cutting_job/infrastructure/persistence/drift_repositories.dart';
 import 'package:drift/native.dart';

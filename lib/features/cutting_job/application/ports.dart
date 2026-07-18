@@ -109,6 +109,26 @@ abstract interface class ImageAcquisitionPort {
   Future<CapturedImage?> pick(ImageCaptureSource source);
 }
 
+enum LocalModelState { notInstalled, downloading, ready, failed }
+
+final class LocalModelStatus {
+  const LocalModelStatus({
+    required this.state,
+    this.progress = 0,
+    this.message = '',
+  });
+
+  final LocalModelState state;
+  final int progress;
+  final String message;
+}
+
+abstract interface class LocalModelPort {
+  Future<bool> isInstalled();
+  Stream<LocalModelStatus> install();
+  Future<void> uninstall();
+}
+
 enum LayoutExportFormat { svg, pdf }
 
 final class LayoutExportRequest {

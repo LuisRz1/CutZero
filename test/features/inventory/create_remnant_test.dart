@@ -1,4 +1,4 @@
-import 'package:cutzero/features/cutting_job/infrastructure/demo_fixture.dart';
+import 'package:cutzero/features/cutting_job/application/demo_fixture.dart';
 import 'package:cutzero/features/inventory/application/create_remnant.dart';
 import 'package:cutzero/features/optimization/application/run_optimization.dart';
 import 'package:cutzero/features/optimization/infrastructure/clipper_geometry.dart';

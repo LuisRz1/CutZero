@@ -7,7 +7,7 @@ import 'package:cutzero/features/agent/infrastructure/fixture_agent_gateway.dart
 import 'package:cutzero/features/agent/infrastructure/fixture_vision_adapter.dart';
 import 'package:cutzero/features/cutting_job/application/ports.dart';
 import 'package:cutzero/features/cutting_job/domain/models.dart';
-import 'package:cutzero/features/cutting_job/infrastructure/demo_fixture.dart';
+import 'package:cutzero/features/cutting_job/application/demo_fixture.dart';
 import 'package:cutzero/features/cutting_job/infrastructure/persistence/cutting_job_mapper.dart';
 import 'package:cutzero/features/cutting_job/infrastructure/persistence/drift_repositories.dart';
 import 'package:cutzero/features/optimization/application/run_optimization.dart';

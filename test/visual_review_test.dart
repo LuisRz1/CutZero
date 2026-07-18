@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:cutzero/app/providers.dart';
 import 'package:cutzero/app/theme/app_theme.dart';
 import 'package:cutzero/core/infrastructure/database/app_database.dart';
+import 'package:cutzero/features/cutting_job/application/ports.dart';
 import 'package:cutzero/features/cutting_job/presentation/cutting_job_controller.dart';
 import 'package:cutzero/features/cutting_job/presentation/workspace_screen.dart';
 import 'package:drift/native.dart';
@@ -18,6 +19,7 @@ void main() {
   late AppDatabase database;
 
   setUpAll(() async {
+    if (!_updateVisuals) return;
     final font = await File('C:/Windows/Fonts/segoeui.ttf').readAsBytes();
     await ui.loadFontFromList(font, fontFamily: 'CutZeroVisual');
   });
@@ -67,7 +69,7 @@ Future<void> _pumpWorkspace(WidgetTester tester, AppDatabase database) async {
     ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(database),
-        gemmaAvailabilityProvider.overrideWithValue(() async => false),
+        localModelProvider.overrideWithValue(const _UnavailableLocalModel()),
       ],
       child: MaterialApp(
         theme: theme.copyWith(
@@ -85,4 +87,17 @@ Future<void> _pumpWorkspace(WidgetTester tester, AppDatabase database) async {
     ),
   );
   await tester.pumpAndSettle();
+}
+
+final class _UnavailableLocalModel implements LocalModelPort {
+  const _UnavailableLocalModel();
+
+  @override
+  Future<bool> isInstalled() async => false;
+
+  @override
+  Stream<LocalModelStatus> install() => const Stream.empty();
+
+  @override
+  Future<void> uninstall() async {}
 }
