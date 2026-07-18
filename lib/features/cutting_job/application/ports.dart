@@ -36,6 +36,11 @@ abstract interface class RemnantRepository {
   Future<void> save(Remnant remnant);
 }
 
+abstract interface class ToolInvocationRepository {
+  Stream<List<ToolInvocation>> watchForJob(String jobId);
+  Future<void> append(ToolInvocation invocation);
+}
+
 enum AgentEventType { message, toolStarted, toolCompleted, completed, failed }
 
 final class AgentRequest {

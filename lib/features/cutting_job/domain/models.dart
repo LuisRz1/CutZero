@@ -255,6 +255,7 @@ enum ToolInvocationStatus { running, success, rejected, failed }
 final class ToolInvocation {
   ToolInvocation({
     required this.id,
+    required this.jobId,
     required this.toolName,
     required this.arguments,
     required this.status,
@@ -264,6 +265,7 @@ final class ToolInvocation {
   }) : createdAt = createdAt ?? DateTime.now().toUtc();
 
   final String id;
+  final String jobId;
   final String toolName;
   final Map<String, Object?> arguments;
   final ToolInvocationStatus status;
