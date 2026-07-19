@@ -2,7 +2,8 @@
 
 ## Preparacion
 
-1. Instalar `app-debug.apk` en un dispositivo Android ARM64 con API 24 o mayor.
+1. Instalar `app-arm64-v8a-release.apk` en un dispositivo Android ARM64 con API
+   24 o mayor.
 2. Abrir CutZero con el dispositivo en vertical.
 3. Usar el agente de demostracion si no se descargo Gemma 4 E2B.
 4. Mantener disponible la captura fixture incluida en la app.
@@ -11,13 +12,14 @@
 
 1. En Trabajo, mostrar el pedido, material EVA y diez piezas.
 2. Pulsar Analizar captura para detectar tres contornos con revision obligatoria.
-3. Ajustar una cantidad o la separacion y confirmar la revision.
-4. Pulsar Optimizar y comparar Aprovechamiento con Retal reutilizable.
-5. Mostrar que las diez piezas evitan la zona defectuosa.
-6. Exportar SVG o PDF y compartir el ultimo archivo.
-7. Guardar el retal mayor y abrir Inventario para verlo con medidas y ubicacion.
-8. Abrir Agente, elegir Demostracion y ejecutar el flujo.
-9. Mostrar las cinco herramientas iniciadas y completadas y el registro local.
+3. Mover un vertice, restaurarlo y mostrar el control de contornos invalidos.
+4. Ajustar una cantidad o la separacion y confirmar la revision.
+5. Pulsar Optimizar y comparar Aprovechamiento con Retal reutilizable.
+6. Mostrar que las diez piezas evitan la zona defectuosa.
+7. Exportar SVG o PDF y compartir el ultimo archivo.
+8. Guardar el retal mayor y abrir Inventario para verlo con medidas y ubicacion.
+9. Abrir Agente, elegir Demostracion y ejecutar el flujo.
+10. Mostrar las cinco herramientas iniciadas y completadas y el registro local.
 
 ## Flujo Gemma local
 

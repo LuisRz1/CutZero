@@ -36,8 +36,13 @@ contra interfaces para cumplir inversion de dependencias.
 - Clipper2 resuelve intersecciones e inflado por separacion.
 - `DeterministicNestingSolver` genera alternativas reproducibles.
 - `ImagePickerAdapter` aisla camara y galeria.
+- `OpenCvVisionAdapter` detecta bordes, simplifica contornos, calibra contra la
+  lamina y alinea cada resultado con su plantilla esperada.
 - `FileLayoutExporter` genera SVG y PDF.
 - flutter_gemma y LiteRT-LM ejecutan Gemma 4 en el dispositivo.
+
+La decision de version, calibracion y rechazo de capturas se detalla en
+[vision.md](vision.md).
 
 ### Presentacion MVC
 
@@ -72,6 +77,8 @@ stateDiagram-v2
 
 Una edicion invalida layouts y exportaciones previas. El solver solo publica un
 resultado si el validador confirma todas las piezas, limites, defectos y gaps.
+Los contornos autocruzados bloquean la confirmacion. Al aceptar la revision, la
+geometria corregida reemplaza a la deteccion y es la entrada real del solver.
 
 ## Agente seguro
 

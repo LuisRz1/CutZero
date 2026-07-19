@@ -8,14 +8,16 @@ E2B se instala bajo demanda y se ejecuta en el dispositivo.
 ## Estado
 
 - Captura desde camara, galeria o fixture de demostracion.
-- Revision de cantidades, veta y separacion.
+- Vectorizacion local con OpenCV, escala por lamina y rechazo de capturas ambiguas.
+- Revision de vertices, cantidades, veta y separacion.
 - Dos planes deterministas: aprovechamiento y retal reutilizable.
 - Validacion geometrica de limites, defectos, separacion y piezas completas.
 - Exportacion SVG y PDF con tipografia Unicode local.
 - Inventario local de retales compatibles.
 - Agente con cinco herramientas permitidas y traza persistente.
 - Interfaz responsive, animada y sin emojis.
-- Pruebas de dominio, persistencia, agente, controlador, exportacion y widgets.
+- 25 pruebas locales, 4 goldens opt-in y un flujo Android nativo de extremo a
+  extremo.
 
 ## Arquitectura
 
@@ -24,7 +26,7 @@ intermediacion en presentacion:
 
 - `domain`: entidades y reglas puras de Dart.
 - `application`: casos de uso y puertos.
-- `infrastructure`: Drift, Clipper2, image_picker, archivos y Gemma.
+- `infrastructure`: Drift, Clipper2, OpenCV, image_picker, archivos y Gemma.
 - `presentation`: vistas Flutter y `CuttingWorkspaceController`.
 - `app`: composicion de dependencias Riverpod, tema y GoRouter.
 
@@ -33,6 +35,7 @@ Las vistas solo renderizan estado. El controlador recibe intenciones y coordina
 puertos. Los adaptadores dependen de contratos de aplicacion, no de widgets.
 
 La explicacion completa esta en [docs/architecture.md](docs/architecture.md).
+El pipeline de captura y sus limites estan en [docs/vision.md](docs/vision.md).
 
 ## Base de datos
 
@@ -57,6 +60,8 @@ Entorno validado en Windows:
 - Android SDK en `D:\Android\Sdk`.
 - Pub cache en `D:\Caches\Pub`.
 - Gradle cache en `D:\Caches\Gradle`.
+- DartCV/OpenCV cache en `D:\Caches\DartCV`.
+- Emulador y AVD Android en `D:\Android\Sdk` y `D:\Android\Avd`.
 - NDK `28.2.13676358` y CMake `3.22.1`.
 - Java 21 de Android Studio.
 
@@ -66,18 +71,33 @@ $env:ANDROID_HOME = 'D:\Android\Sdk'
 $env:ANDROID_SDK_ROOT = 'D:\Android\Sdk'
 $env:PUB_CACHE = 'D:\Caches\Pub'
 $env:GRADLE_USER_HOME = 'D:\Caches\Gradle'
+$env:DARTCV_CACHE_DIR = 'D:\Caches\DartCV'
+$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 
 & D:\flutter-sdk\flutter\bin\flutter.bat pub get
 & D:\flutter-sdk\flutter\bin\flutter.bat analyze
 & D:\flutter-sdk\flutter\bin\flutter.bat test
-& D:\flutter-sdk\flutter\bin\flutter.bat build apk --debug `
+& D:\flutter-sdk\flutter\bin\flutter.bat build apk --release `
   --target-platform android-arm64 --split-per-abi
 ```
 
+La prueba nativa recorre vision, SQLite, optimizacion y exportacion dentro de un
+dispositivo o emulador Android:
+
+```powershell
+& D:\flutter-sdk\flutter\bin\flutter.bat test `
+  integration_test/android_workflow_test.dart -d <device-id>
+```
+
 El APK queda en
-`build\app\outputs\flutter-apk\app-arm64-v8a-debug.apk`. Android requiere
+`build\app\outputs\flutter-apk\app-arm64-v8a-release.apk`. Android requiere
 API 24 o posterior y un dispositivo ARM64. El filtro ARM64 evita empaquetar
-bibliotecas que Gemma 4 E2B no puede ejecutar en el MVP.
+bibliotecas que Gemma 4 E2B no puede ejecutar en el MVP. La entrega de hackathon
+usa la clave de depuracion; una publicacion en tienda requiere un keystore del
+propietario.
+
+Artefacto verificado: 155.20 MiB, `com.luisrz1.cutzero` 1.0.0 y SHA-256
+`98AD20E8CC7F21D3A12E1070F6C71DEC263823398623A4BA624CDA8813747BA8`.
 
 ## Gemma 4 local
 
@@ -98,9 +118,10 @@ El agente no ejecuta texto libre como codigo. Solo puede invocar
 ## iOS
 
 El proyecto fija iOS 16 y usa frameworks estaticos. La compilacion y firma final
-requieren macOS, Xcode, CocoaPods y una identidad de Apple Developer. CI valida
-`flutter build ios --no-codesign`; la instalacion en iPhone exige configurar el
-equipo de firma en Xcode.
+requieren macOS, Xcode, CocoaPods y una identidad de Apple Developer. CI esta
+configurada para ejecutar `flutter build ios --no-codesign`; todavia debe
+validarse en GitHub. La instalacion en iPhone exige configurar el equipo de
+firma en Xcode.
 
 ## Validacion visual
 
@@ -113,3 +134,12 @@ con una fuente real del sistema:
 ```
 
 El recorrido de presentacion esta en [docs/demo.md](docs/demo.md).
+
+## Resultado verificado
+
+- `flutter analyze`: sin observaciones.
+- `flutter test`: 25 aprobadas y 4 visuales omitidas por ser opt-in.
+- Pruebas visuales opt-in: 4 aprobadas en movil y escritorio.
+- Android 11 x86_64: OpenCV, SQLite, revision, dos layouts y SVG aprobados.
+- Recorrido tactil en Android: captura, editor, confirmacion y optimizacion.
+- Android ARM64 fisico, Gemma local e iOS: pendientes de hardware o macOS.
