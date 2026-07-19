@@ -21,7 +21,7 @@ jobs:
       DARTCV_CACHE_DIR: ${{ github.workspace }}/.dartcv-cache
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
