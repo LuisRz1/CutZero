@@ -8,6 +8,7 @@ import '../../../app/theme/app_theme.dart';
 import '../application/ports.dart';
 import '../domain/models.dart';
 import 'cutting_job_controller.dart';
+import 'widgets/contour_editor.dart';
 import 'widgets/layout_canvas.dart';
 
 final class WorkspaceScreen extends ConsumerWidget {
@@ -420,6 +421,38 @@ final class _ReviewPanel extends StatelessWidget {
                 ? null
                 : (value) => unawaited(controller.updateGap(value)),
           ),
+          if (state.vectorization case final vectorization?) ...[
+            const Divider(height: 24),
+            ContourEditor(
+              names: [for (final part in state.job.parts) part.name],
+              contours: vectorization.contours,
+              selectedIndex: state.selectedContourIndex,
+              enabled: !state.isBusy,
+              onSelected: controller.selectContour,
+              onVertexChanged: controller.updateContourVertex,
+              onReset: controller.resetSelectedContour,
+            ),
+            if (vectorization.warnings.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              for (final warning in vectorization.warnings)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline, size: 18),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          warning,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ],
           const Divider(height: 24),
           for (final part in state.job.parts)
             _PartQuantityRow(
@@ -590,12 +623,18 @@ final class _ResultsPanel extends StatelessWidget {
                 ButtonSegment(
                   value: 0,
                   icon: Icon(Icons.percent),
-                  label: Text('Aprovechamiento'),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Aprovechamiento', maxLines: 1),
+                  ),
                 ),
                 ButtonSegment(
                   value: 1,
                   icon: Icon(Icons.inventory_2_outlined),
-                  label: Text('Retal reutilizable'),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Retal reutilizable', maxLines: 1),
+                  ),
                 ),
               ],
               selected: {state.selectedLayoutIndex},

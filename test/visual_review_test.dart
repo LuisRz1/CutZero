@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:cutzero/app/providers.dart';
 import 'package:cutzero/app/theme/app_theme.dart';
 import 'package:cutzero/core/infrastructure/database/app_database.dart';
+import 'package:cutzero/features/agent/infrastructure/fixture_vision_adapter.dart';
 import 'package:cutzero/features/cutting_job/application/ports.dart';
 import 'package:cutzero/features/cutting_job/presentation/cutting_job_controller.dart';
 import 'package:cutzero/features/cutting_job/presentation/workspace_screen.dart';
@@ -22,6 +23,10 @@ void main() {
     if (!_updateVisuals) return;
     final font = await File('C:/Windows/Fonts/segoeui.ttf').readAsBytes();
     await ui.loadFontFromList(font, fontFamily: 'CutZeroVisual');
+    final materialIcons = await _findFlutterArtifact(
+      'bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    ).readAsBytes();
+    await ui.loadFontFromList(materialIcons, fontFamily: 'MaterialIcons');
   });
 
   setUp(() {
@@ -61,6 +66,57 @@ void main() {
       matchesGoldenFile('goldens/workspace-optimized-desktop.png'),
     );
   }, skip: !_updateVisuals);
+
+  testWidgets('renders an optimized mobile layout', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpWorkspace(tester, database);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(WorkspaceScreen)),
+    );
+    final controller = container.read(cuttingWorkspaceProvider.notifier);
+    await controller.analyzeFixture();
+    await controller.confirmReview();
+    await controller.optimize();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Plan de corte'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(WorkspaceScreen),
+      matchesGoldenFile('goldens/workspace-optimized-mobile.png'),
+    );
+  }, skip: !_updateVisuals);
+
+  testWidgets('renders the mobile contour review', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpWorkspace(tester, database);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(WorkspaceScreen)),
+    );
+    await container.read(cuttingWorkspaceProvider.notifier).analyzeFixture();
+    await tester.pumpAndSettle();
+    final editor = find.byKey(const Key('contourEditorCanvas'));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -760));
+    await tester.pumpAndSettle();
+    expect(editor, findsOneWidget);
+
+    await expectLater(
+      find.byType(WorkspaceScreen),
+      matchesGoldenFile('goldens/workspace-review-mobile.png'),
+    );
+  }, skip: !_updateVisuals);
+}
+
+File _findFlutterArtifact(String relativePath) {
+  var directory = File(Platform.resolvedExecutable).parent;
+  while (directory.parent.path != directory.path) {
+    final candidate = File('${directory.path}/$relativePath');
+    if (candidate.existsSync()) return candidate;
+    directory = directory.parent;
+  }
+  throw StateError('No se encontro el SDK de Flutter para la prueba visual.');
 }
 
 Future<void> _pumpWorkspace(WidgetTester tester, AppDatabase database) async {
@@ -69,6 +125,7 @@ Future<void> _pumpWorkspace(WidgetTester tester, AppDatabase database) async {
     ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(database),
+        visionProvider.overrideWithValue(const FixtureVisionAdapter()),
         localModelProvider.overrideWithValue(const _UnavailableLocalModel()),
       ],
       child: MaterialApp(

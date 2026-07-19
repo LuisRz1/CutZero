@@ -103,6 +103,9 @@ final class _LayoutPainter extends CustomPainter {
             ..color = CutZeroColors.ink,
         );
       final bounds = placement.polygon.bounds;
+      final labelWidth = bounds.width * scale - 8;
+      final labelHeight = bounds.height * scale - 8;
+      if (labelWidth < 36 || labelHeight < 14) continue;
       final label = TextPainter(
         text: TextSpan(
           text: placement.name,
@@ -116,7 +119,7 @@ final class _LayoutPainter extends CustomPainter {
         maxLines: 1,
         ellipsis: '...',
         textDirection: TextDirection.ltr,
-      )..layout(maxWidth: math.max(20, bounds.width * scale - 8));
+      )..layout(maxWidth: labelWidth);
       label.paint(
         canvas,
         origin + Offset(bounds.minX * scale + 4, bounds.minY * scale + 4),

@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:cutzero/app/providers.dart';
 import 'package:cutzero/core/infrastructure/database/app_database.dart';
+import 'package:cutzero/core/domain/geometry.dart';
+import 'package:cutzero/features/agent/infrastructure/fixture_vision_adapter.dart';
 import 'package:cutzero/features/cutting_job/application/ports.dart';
 import 'package:cutzero/features/cutting_job/domain/models.dart';
 import 'package:cutzero/features/cutting_job/presentation/cutting_job_controller.dart';
@@ -22,6 +24,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         appDatabaseProvider.overrideWithValue(database),
+        visionProvider.overrideWithValue(const FixtureVisionAdapter()),
         imageAcquisitionProvider.overrideWithValue(
           const _TestImageAcquisition(),
         ),
@@ -128,6 +131,100 @@ void main() {
     expect(edited.job.layouts, isEmpty);
     expect(edited.lastExport, isNull);
   });
+
+  test('persists an edited contour and can restore the detection', () async {
+    final controller = container.read(cuttingWorkspaceProvider.notifier);
+    await Future<void>.delayed(Duration.zero);
+    await controller.analyzeFixture();
+
+    final detected = container
+        .read(cuttingWorkspaceProvider)
+        .vectorization!
+        .contours
+        .first;
+    final originalPoint = detected.points[1];
+    controller.updateContourVertex(
+      1,
+      Point2D(originalPoint.x - 8, originalPoint.y + 4),
+    );
+    final edited = container
+        .read(cuttingWorkspaceProvider)
+        .vectorization!
+        .contours
+        .first;
+    expect(edited.points, isNot(detected.points));
+
+    await controller.confirmReview();
+    final saved = await container
+        .read(cuttingJobRepositoryProvider)
+        .findById('demo-eva-bags');
+    expect(saved!.parts.first.polygon.points, edited.points);
+
+    await controller.analyzeFixture();
+    controller.updateContourVertex(
+      1,
+      Point2D(originalPoint.x - 8, originalPoint.y + 4),
+    );
+    controller.resetSelectedContour();
+    final restored = container
+        .read(cuttingWorkspaceProvider)
+        .vectorization!
+        .contours
+        .first;
+    expect(restored.points, detected.points);
+  });
+
+  test('blocks review when a contour crosses itself', () async {
+    final controller = container.read(cuttingWorkspaceProvider.notifier);
+    await Future<void>.delayed(Duration.zero);
+    await controller.analyzeFixture();
+
+    controller.updateContourVertex(1, const Point2D(22, 175));
+    final invalid = container.read(cuttingWorkspaceProvider);
+
+    expect(invalid.vectorization!.contours.first.isSimple, isFalse);
+    expect(invalid.canReview, isFalse);
+    expect(invalid.error, contains('contorno se cruza'));
+  });
+
+  test('recovers cleanly from cancelled capture and vision failure', () async {
+    final cancelledContainer = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        imageAcquisitionProvider.overrideWithValue(
+          const _CancelledImageAcquisition(),
+        ),
+        visionProvider.overrideWithValue(const FixtureVisionAdapter()),
+      ],
+    );
+    addTearDown(cancelledContainer.dispose);
+    final cancelledController = cancelledContainer.read(
+      cuttingWorkspaceProvider.notifier,
+    );
+    await Future<void>.delayed(Duration.zero);
+    await cancelledController.capture(ImageCaptureSource.camera);
+    final cancelled = cancelledContainer.read(cuttingWorkspaceProvider);
+    expect(cancelled.task, WorkspaceTask.none);
+    expect(cancelled.vectorization, isNull);
+    expect(cancelled.error, isNull);
+
+    final failingContainer = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        visionProvider.overrideWithValue(const _FailingVision()),
+      ],
+    );
+    addTearDown(failingContainer.dispose);
+    final failingController = failingContainer.read(
+      cuttingWorkspaceProvider.notifier,
+    );
+    await Future<void>.delayed(Duration.zero);
+    await failingController.analyzeFixture();
+    final failed = failingContainer.read(cuttingWorkspaceProvider);
+    expect(failed.task, WorkspaceTask.none);
+    expect(failed.vectorization, isNull);
+    expect(failed.error, contains('contraste insuficiente'));
+  });
 }
 
 final class _TestImageAcquisition implements ImageAcquisitionPort {
@@ -138,6 +235,22 @@ final class _TestImageAcquisition implements ImageAcquisitionPort {
     path: 'captured-test.png',
     bytes: Uint8List.fromList(const [1, 2, 3]),
   );
+}
+
+final class _CancelledImageAcquisition implements ImageAcquisitionPort {
+  const _CancelledImageAcquisition();
+
+  @override
+  Future<CapturedImage?> pick(ImageCaptureSource source) async => null;
+}
+
+final class _FailingVision implements VisionPort {
+  const _FailingVision();
+
+  @override
+  Future<VectorizationResult> vectorize(VectorizationRequest request) async {
+    throw const VisionException('La captura tiene contraste insuficiente.');
+  }
 }
 
 Future<ByteData> _loadFont() async => ByteData.sublistView(

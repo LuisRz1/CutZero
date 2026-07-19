@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/domain/geometry.dart';
 import '../../inventory/application/create_remnant.dart';
 import '../../optimization/application/run_optimization.dart';
 import '../application/ports.dart';
@@ -21,6 +22,8 @@ final class CuttingWorkspaceState {
     this.capturePath = 'assets/fixtures/eva_bag_manual.png',
     this.captureBytes,
     this.vectorization,
+    this.originalContours = const [],
+    this.selectedContourIndex = 0,
     this.selectedLayoutIndex = 0,
     this.task = WorkspaceTask.none,
     this.message = '',
@@ -37,6 +40,8 @@ final class CuttingWorkspaceState {
   final String capturePath;
   final Uint8List? captureBytes;
   final VectorizationResult? vectorization;
+  final List<Polygon2D> originalContours;
+  final int selectedContourIndex;
   final int selectedLayoutIndex;
   final WorkspaceTask task;
   final String message;
@@ -48,7 +53,11 @@ final class CuttingWorkspaceState {
 
   bool get isBusy => task != WorkspaceTask.none;
   bool get canReview =>
-      vectorization != null && job.stage == CuttingJobStage.captured && !isBusy;
+      vectorization != null &&
+      vectorization!.contours.length == job.parts.length &&
+      vectorization!.contours.every((polygon) => polygon.isSimple) &&
+      job.stage == CuttingJobStage.captured &&
+      !isBusy;
   bool get canOptimize => job.stage == CuttingJobStage.reviewed && !isBusy;
   NestingLayout? get selectedLayout => job.layouts.isEmpty
       ? null
@@ -59,6 +68,8 @@ final class CuttingWorkspaceState {
     String? capturePath,
     Object? captureBytes = _keepValue,
     Object? vectorization = _keepValue,
+    List<Polygon2D>? originalContours,
+    int? selectedContourIndex,
     int? selectedLayoutIndex,
     WorkspaceTask? task,
     String? message,
@@ -76,6 +87,8 @@ final class CuttingWorkspaceState {
     vectorization: identical(vectorization, _keepValue)
         ? this.vectorization
         : vectorization as VectorizationResult?,
+    originalContours: originalContours ?? this.originalContours,
+    selectedContourIndex: selectedContourIndex ?? this.selectedContourIndex,
     selectedLayoutIndex: selectedLayoutIndex ?? this.selectedLayoutIndex,
     task: task ?? this.task,
     message: message ?? this.message,
@@ -168,7 +181,21 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
       final result = await ref
           .read(visionProvider)
           .vectorize(
-            VectorizationRequest(imagePath: path, referenceLengthMm: 100),
+            VectorizationRequest(
+              imagePath: path,
+              imageBytes: bytes,
+              referenceLengthMm: 100,
+              sheetWidthMm: state.job.material.widthMm,
+              sheetHeightMm: state.job.material.heightMm,
+              templates: [
+                for (final part in state.job.parts)
+                  VectorizationTemplate(
+                    id: part.id,
+                    widthMm: part.polygon.bounds.width,
+                    heightMm: part.polygon.bounds.height,
+                  ),
+              ],
+            ),
           );
       if (!ref.mounted) return;
       final updatedJob = state.job.copyWith(
@@ -182,6 +209,8 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
         capturePath: path,
         captureBytes: bytes,
         vectorization: result,
+        originalContours: result.contours,
+        selectedContourIndex: 0,
         selectedLayoutIndex: 0,
         task: WorkspaceTask.none,
         message: 'Contornos detectados. Revisa las medidas antes de continuar.',
@@ -200,10 +229,85 @@ final class CuttingWorkspaceController extends Notifier<CuttingWorkspaceState> {
 
   Future<void> confirmReview() async {
     if (!state.canReview) return;
-    final updatedJob = state.job.copyWith(stage: CuttingJobStage.reviewed);
+    final result = state.vectorization!;
+    final contoursById = <String, Polygon2D>{
+      for (var index = 0; index < result.contours.length; index++)
+        if (index < result.templateIds.length)
+          result.templateIds[index]: result.contours[index],
+    };
+    final updatedParts = <PartTemplate>[];
+    for (var index = 0; index < state.job.parts.length; index++) {
+      final part = state.job.parts[index];
+      final contour = contoursById[part.id] ?? result.contours[index];
+      updatedParts.add(part.copyWith(polygon: contour.normalized));
+    }
+    final updatedJob = state.job.copyWith(
+      parts: updatedParts,
+      stage: CuttingJobStage.reviewed,
+      layouts: const [],
+    );
     await _saveJob(
       updatedJob,
       message: 'Geometria revisada y lista para optimizar.',
+      clearResults: true,
+    );
+  }
+
+  void selectContour(int index) {
+    final contours = state.vectorization?.contours ?? const <Polygon2D>[];
+    if (index < 0 || index >= contours.length) return;
+    state = state.copyWith(selectedContourIndex: index, error: null);
+  }
+
+  void updateContourVertex(int vertexIndex, Point2D point) {
+    final result = state.vectorization;
+    if (result == null || state.isBusy) return;
+    final contourIndex = state.selectedContourIndex;
+    if (contourIndex < 0 || contourIndex >= result.contours.length) return;
+    final current = result.contours[contourIndex];
+    if (vertexIndex < 0 || vertexIndex >= current.points.length) return;
+    final points = [...current.points];
+    points[vertexIndex] = Point2D(
+      point.x.clamp(0, state.job.material.widthMm).toDouble(),
+      point.y.clamp(0, state.job.material.heightMm).toDouble(),
+    );
+    try {
+      final updated = Polygon2D(points).normalized;
+      final contours = [...result.contours]..[contourIndex] = updated;
+      state = state.copyWith(
+        vectorization: result.copyWith(contours: contours),
+        job: state.job.copyWith(
+          stage: CuttingJobStage.captured,
+          layouts: const [],
+        ),
+        remnantSaved: false,
+        lastExport: null,
+        error: updated.isSimple
+            ? null
+            : 'El contorno se cruza. Ajusta el vertice antes de confirmar.',
+      );
+    } on ArgumentError {
+      state = state.copyWith(
+        error: 'Ese movimiento produciria un contorno sin area valida.',
+      );
+    }
+  }
+
+  void resetSelectedContour() {
+    final result = state.vectorization;
+    final index = state.selectedContourIndex;
+    if (result == null ||
+        index < 0 ||
+        index >= result.contours.length ||
+        index >= state.originalContours.length) {
+      return;
+    }
+    final contours = [...result.contours]
+      ..[index] = state.originalContours[index];
+    state = state.copyWith(
+      vectorization: result.copyWith(contours: contours),
+      error: null,
+      message: 'Contorno restaurado a la deteccion original.',
     );
   }
 

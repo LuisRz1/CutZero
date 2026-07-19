@@ -32,5 +32,18 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('detects a self-intersecting contour', () {
+      final simple = Polygon2D.rectangle(width: 100, height: 60);
+      final crossed = Polygon2D([
+        const Point2D(0, 0),
+        const Point2D(100, 60),
+        const Point2D(100, 0),
+        const Point2D(0, 80),
+      ]);
+
+      expect(simple.isSimple, isTrue);
+      expect(crossed.isSimple, isFalse);
+    });
   });
 }

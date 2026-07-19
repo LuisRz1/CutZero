@@ -90,13 +90,14 @@ final class PartTemplate {
   final bool grainLocked;
 
   PartTemplate copyWith({
+    Polygon2D? polygon,
     int? quantity,
     List<int>? allowedRotations,
     bool? grainLocked,
   }) => PartTemplate(
     id: id,
     name: name,
-    polygon: polygon,
+    polygon: polygon ?? this.polygon,
     quantity: quantity ?? this.quantity,
     allowedRotations: allowedRotations ?? this.allowedRotations,
     grainLocked: grainLocked ?? this.grainLocked,

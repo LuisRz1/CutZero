@@ -2,6 +2,7 @@ import 'package:cutzero/app/providers.dart';
 import 'package:cutzero/app/theme/app_theme.dart';
 import 'package:cutzero/app/cutzero_app.dart';
 import 'package:cutzero/core/infrastructure/database/app_database.dart';
+import 'package:cutzero/features/agent/infrastructure/fixture_vision_adapter.dart';
 import 'package:cutzero/features/cutting_job/application/ports.dart';
 import 'package:cutzero/features/cutting_job/presentation/cutting_job_controller.dart';
 import 'package:cutzero/features/cutting_job/presentation/workspace_screen.dart';
@@ -28,6 +29,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
+          visionProvider.overrideWithValue(const FixtureVisionAdapter()),
           localModelProvider.overrideWithValue(const _UnavailableLocalModel()),
         ],
         child: MaterialApp(
@@ -46,15 +48,19 @@ void main() {
     await tester.tap(analyze);
     await tester.pumpAndSettle();
     expect(find.text('94%'), findsOneWidget);
+    expect(find.byKey(const Key('contourEditorCanvas')), findsOneWidget);
+    expect(find.byKey(const Key('resetContourButton')), findsOneWidget);
 
     final confirm = find.byKey(const Key('confirmReviewButton'));
-    await tester.ensureVisible(confirm);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -620));
+    await tester.pumpAndSettle();
     await tester.tap(confirm);
     await tester.pumpAndSettle();
     expect(find.text('Revisado'), findsOneWidget);
 
     final optimize = find.byKey(const Key('optimizeButton'));
-    await tester.ensureVisible(optimize);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -420));
+    await tester.pumpAndSettle();
     await tester.tap(optimize);
     await tester.pumpAndSettle();
 
@@ -74,6 +80,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
+          visionProvider.overrideWithValue(const FixtureVisionAdapter()),
           localModelProvider.overrideWithValue(const _UnavailableLocalModel()),
         ],
         child: MaterialApp(
@@ -98,6 +105,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
+          visionProvider.overrideWithValue(const FixtureVisionAdapter()),
           localModelProvider.overrideWithValue(const _UnavailableLocalModel()),
         ],
         child: const CutZeroApp(),

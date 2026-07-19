@@ -86,6 +86,26 @@ final class Polygon2D {
 
   double get area => signedArea.abs();
 
+  bool get isSimple {
+    for (var index = 0; index < points.length; index++) {
+      if (points[index] == points[(index + 1) % points.length]) return false;
+      for (var other = index + 1; other < points.length; other++) {
+        final adjacent =
+            other == index + 1 || (index == 0 && other == points.length - 1);
+        if (adjacent) continue;
+        if (_segmentsIntersect(
+          points[index],
+          points[(index + 1) % points.length],
+          points[other],
+          points[(other + 1) % points.length],
+        )) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   Bounds2D get bounds {
     var minX = points.first.x;
     var minY = points.first.y;
@@ -131,4 +151,29 @@ final class Polygon2D {
   factory Polygon2D.fromJson(List<Object?> json) => Polygon2D(
     json.map((point) => Point2D.fromJson(point! as Map<String, Object?>)),
   );
+}
+
+bool _segmentsIntersect(Point2D a, Point2D b, Point2D c, Point2D d) {
+  double cross(Point2D p, Point2D q, Point2D r) =>
+      (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+
+  bool onSegment(Point2D p, Point2D q, Point2D r) =>
+      q.x >= math.min(p.x, r.x) - 0.000001 &&
+      q.x <= math.max(p.x, r.x) + 0.000001 &&
+      q.y >= math.min(p.y, r.y) - 0.000001 &&
+      q.y <= math.max(p.y, r.y) + 0.000001;
+
+  final abC = cross(a, b, c);
+  final abD = cross(a, b, d);
+  final cdA = cross(c, d, a);
+  final cdB = cross(c, d, b);
+  if (((abC > 0 && abD < 0) || (abC < 0 && abD > 0)) &&
+      ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0))) {
+    return true;
+  }
+  if (abC.abs() <= 0.000001 && onSegment(a, c, b)) return true;
+  if (abD.abs() <= 0.000001 && onSegment(a, d, b)) return true;
+  if (cdA.abs() <= 0.000001 && onSegment(c, a, d)) return true;
+  if (cdB.abs() <= 0.000001 && onSegment(c, b, d)) return true;
+  return false;
 }

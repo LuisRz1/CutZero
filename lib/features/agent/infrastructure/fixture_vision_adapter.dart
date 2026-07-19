@@ -18,6 +18,12 @@ final class FixtureVisionAdapter implements VisionPort {
           .toList(growable: false),
       confidence: 0.94,
       requiresReview: true,
+      templateIds: fixture.parts.map((part) => part.id).toList(growable: false),
+      sourceContours: fixture.parts
+          .map((part) => part.polygon)
+          .toList(growable: false),
+      sourceWidthPx: fixture.material.widthMm,
+      sourceHeightPx: fixture.material.heightMm,
     );
   }
 }

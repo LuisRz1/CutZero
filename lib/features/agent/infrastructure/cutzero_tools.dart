@@ -80,6 +80,16 @@ final class VectorizeCaptureTool implements AgentToolHandler {
       VectorizationRequest(
         imagePath: arguments['imagePath']! as String,
         referenceLengthMm: (arguments['referenceLengthMm']! as num).toDouble(),
+        sheetWidthMm: context.job.material.widthMm,
+        sheetHeightMm: context.job.material.heightMm,
+        templates: [
+          for (final part in context.job.parts)
+            VectorizationTemplate(
+              id: part.id,
+              widthMm: part.polygon.bounds.width,
+              heightMm: part.polygon.bounds.height,
+            ),
+        ],
       ),
     );
     context.vectorization = result;
