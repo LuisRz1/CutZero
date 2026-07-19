@@ -117,11 +117,11 @@ El agente no ejecuta texto libre como codigo. Solo puede invocar
 
 ## iOS
 
-El proyecto fija iOS 16 y usa frameworks estaticos. La compilacion y firma final
-requieren macOS, Xcode, CocoaPods y una identidad de Apple Developer. CI esta
-configurada para ejecutar `flutter build ios --no-codesign`; todavia debe
-validarse en GitHub. La instalacion en iPhone exige configurar el equipo de
-firma en Xcode.
+El proyecto fija iOS 16 y usa frameworks estaticos. La compilacion requiere
+macOS y Xcode 16.3 o posterior; la firma final tambien necesita una identidad de
+Apple Developer. CI ejecuta `flutter build ios --no-codesign` sobre macOS 15 y
+Xcode 16.4. La instalacion en iPhone exige configurar el equipo de firma en
+Xcode.
 
 ## Validacion visual
 
@@ -142,4 +142,6 @@ El recorrido de presentacion esta en [docs/demo.md](docs/demo.md).
 - Pruebas visuales opt-in: 4 aprobadas en movil y escritorio.
 - Android 11 x86_64: OpenCV, SQLite, revision, dos layouts y SVG aprobados.
 - Recorrido tactil en Android: captura, editor, confirmacion y optimizacion.
-- Android ARM64 fisico, Gemma local e iOS: pendientes de hardware o macOS.
+- Android ARM64 fisico y Gemma local: pendientes de hardware con capacidad
+  suficiente. iOS se compila sin firma en CI; la ejecucion fisica requiere un
+  iPhone y una identidad de Apple Developer.

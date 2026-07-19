@@ -46,7 +46,7 @@ jobs:
           if-no-files-found: error
 
   verify-ios:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     env:
       DARTCV_CACHE_DIR: ${{ github.workspace }}/.dartcv-cache
